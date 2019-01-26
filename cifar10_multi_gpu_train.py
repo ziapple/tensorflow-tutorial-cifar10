@@ -17,7 +17,7 @@
 
 Accuracy:
 cifar10_multi_gpu_train.py achieves ~86% accuracy after 100K steps (256
-epochs of data) as judged by cifar10_eval.py.
+epochs of data) as judged by img_eval.py.
 
 Speed: With batch_size 128.
 
@@ -275,9 +275,9 @@ def train():
 
 def main(argv=None):  # pylint: disable=unused-argument
   cifar10.maybe_download_and_extract()
-  if gfile.Exists(FLAGS.train_dir):
-    gfile.DeleteRecursively(FLAGS.train_dir)
-  gfile.MakeDirs(FLAGS.train_dir)
+  #if gfile.Exists(FLAGS.train_dir):
+  #  gfile.DeleteRecursively(FLAGS.train_dir)
+  #gfile.MakeDirs(FLAGS.train_dir)
   train()
 
 

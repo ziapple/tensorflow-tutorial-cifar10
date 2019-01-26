@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: UTF-8 -*-
 import tensorflow as tf
 import os
 import scipy.misc
@@ -69,8 +69,8 @@ def cifar102image(lines):
         #sess.run(tf.initialize_all_variables())
         for i in range(10):
             _key, _label, image_array, distored_image_array = sess.run([key, label, reshaped_image, distored_image])
-            scipy.misc.toimage(image_array).save('cifar10_data/raw/%d.%s.jpg' % (i, lines[_label[0]]))
-            scipy.misc.toimage(distored_image_array).save('cifar10_data/raw/%d.%s.distored.jpg' % (i, lines[_label[0]]))
+            scipy.misc.toimage(image_array).save('cifar10_data/raw/%s-%d.jpg' % (lines[_label[0]], _label[0]))
+            # scipy.misc.toimage(distored_image_array).save('cifar10_data/raw/%d.%s.distored.jpg' % (i, lines[_label[0]]))
 
 def load_CIFAR_Labels(filename):
     with open(filename, 'rb') as f:

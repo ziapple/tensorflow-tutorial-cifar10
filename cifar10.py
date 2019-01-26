@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2015 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +51,7 @@ import cifar10_input
 FLAGS = tf.app.flags.FLAGS
 
 # Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 128, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 600, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_string('data_dir', './cifar10_data', """Path to the CIFAR-10 data directory.""")
 
 # Global constants describing the CIFAR-10 data set.
@@ -61,7 +63,7 @@ NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
-NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
+NUM_EPOCHS_PER_DECAY = 100.0      # Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
 INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
 
@@ -163,8 +165,7 @@ def inputs(eval_data):
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
   data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-  return cifar10_input.inputs(eval_data=eval_data, data_dir=data_dir,
-                              batch_size=FLAGS.batch_size)
+  return cifar10_input.inputs(eval_data=eval_data, data_dir=data_dir,batch_size=FLAGS.batch_size)
 
 
 def inference(images):
@@ -233,6 +234,7 @@ def inference(images):
     softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
     _activation_summary(softmax_linear)
 
+  # 输出为softmax概率矩阵,大小为样本数*标签数
   return softmax_linear
 
 
@@ -250,8 +252,7 @@ def loss(logits, labels):
   """
   # Calculate the average cross entropy loss across the batch.
   labels = tf.cast(labels, tf.int64)
-  cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-      logits, labels, name='cross_entropy_per_example')
+  cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy_per_example')
   cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
   tf.add_to_collection('losses', cross_entropy_mean)
 

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2015 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +19,7 @@
 
 Accuracy:
 cifar10_train.py achieves 83.0% accuracy after 100K steps (256 epochs
-of data) as judged by cifar10_eval.py.
+of data) as judged by img_eval.py.
 
 Speed:
 On a single Tesla K40, cifar10_train.py processes a single batch of 128 images
@@ -51,8 +53,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('eval_dir', './cifar10_eval', """Directory where to write event logs.""")
 tf.app.flags.DEFINE_string('eval_data', 'test', """Either 'test' or 'train_eval'.""")
 tf.app.flags.DEFINE_string('checkpoint_dir', './cifar10_train', """Directory where to read model checkpoints.""")
-tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5, """How often to run the eval.""")
-tf.app.flags.DEFINE_integer('num_examples', 100, """Number of examples to run.""")
+tf.app.flags.DEFINE_integer('eval_interval_secs', 10, """How often to run the eval.""")
+tf.app.flags.DEFINE_integer('num_examples', 1000, """Number of examples to run.""")
 tf.app.flags.DEFINE_boolean('run_once', False, """Whether to run eval only once.""")
 
 
@@ -85,6 +87,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
       for qr in tf.get_collection(tf.GraphKeys.QUEUE_RUNNERS):
         threads.extend(qr.create_threads(sess, coord=coord, daemon=True, start=True))
 
+      # 每批次验证的数量
       num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
       true_count = 0  # Counts the number of correct predictions.
       total_sample_count = num_iter * FLAGS.batch_size
@@ -121,6 +124,7 @@ def evaluate():
     logits = cifar10.inference(images)
 
     # Calculate predictions.
+    # in_top_k(predictions, targets, k, name=None)
     top_k_op = tf.nn.in_top_k(logits, labels, 1)
 
     # Restore the moving average version of the learned variables for eval.
@@ -135,10 +139,11 @@ def evaluate():
     summary_writer = tf.train.SummaryWriter(FLAGS.eval_dir, graph_def=graph_def)
 
     while True:
+      print("start evaluate the precision with examples %s" % FLAGS.num_examples)
       eval_once(saver, summary_writer, top_k_op, summary_op)
       if FLAGS.run_once:
         break
-      time.sleep(FLAGS.eval_interval_secs)
+      #time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

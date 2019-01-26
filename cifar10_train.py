@@ -17,7 +17,7 @@
 
 Accuracy:
 cifar10_train.py achieves ~86% accuracy after 100K steps (256 epochs of
-data) as judged by cifar10_eval.py.
+data) as judged by img_eval.py.
 
 Speed: With batch_size 128.
 
