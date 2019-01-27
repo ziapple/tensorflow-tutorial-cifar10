@@ -31,7 +31,7 @@ NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 50000
 # 验证的样本总数量，1万张
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
 # 每批次训练的图片数量,该数字必须小于训练和测试集总的数量，否则测试的时候准确率会>1,
-tf.app.flags.DEFINE_integer('batch_size', 2, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 1, """Number of images to process in a batch.""")
 # 训练图片所在目录,跟训练集在同一个目录，这样验证的时候好用，既可以用训练集来验证，也可以用测试集来验证
 tf.app.flags.DEFINE_string('data_dir', '../cifar10_data', """Path to the images data directory.""")
 

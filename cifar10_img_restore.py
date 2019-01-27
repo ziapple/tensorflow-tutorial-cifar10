@@ -60,7 +60,7 @@ def cifar102image(lines):
     reshaped_image = tf.cast(uint8image, tf.float32)
     distored_image = distored_images(reshaped_image)
     with tf.Session() as sess:
-        #需要调用tf.train.start_queue_runners函数，否则数据流图将一直挂起
+        # 需要调用tf.train.start_queue_runners函数，否则数据流图将一直挂起
         # 在我们使用tf.train.string_input_producer创建文件名队列后，
         # “停滞状态”的，也就是说，我们文件名并没有真正被加入到队列中，此时如果我们开始计算，因为内存队列中什么也没有，计算单元就会一直等待，
         # 导致整个系统被阻塞。使用tf.train.start_queue_runners之后，才会启动填充队列的线程，这时系统就不再“停滞”。
@@ -69,7 +69,7 @@ def cifar102image(lines):
         #sess.run(tf.initialize_all_variables())
         for i in range(10):
             _key, _label, image_array, distored_image_array = sess.run([key, label, reshaped_image, distored_image])
-            scipy.misc.toimage(image_array).save('cifar10_data/raw/%s-%d.jpg' % (lines[_label[0]], _label[0]))
+            scipy.misc.toimage(image_array).save('cifar10_data/raw/%d.%s-%d.jpg' % (i, lines[_label[0]], _label[0]))
             # scipy.misc.toimage(distored_image_array).save('cifar10_data/raw/%d.%s.distored.jpg' % (i, lines[_label[0]]))
 
 def load_CIFAR_Labels(filename):

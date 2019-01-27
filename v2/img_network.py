@@ -77,6 +77,10 @@ def _activation_summary(x):
 
 
 # 内部函数，创建在CPU内存上的变量
+# tf.name_scope() 主要是方便参数变量的“ 分组 ”和 “ 管理 ”，主要是结合tf.Variable()一起使用
+# tf.variable_scope() 一方面也是可以实现变量的“ 分组 ”和“ 管理 ”，主要是结合tf.get_variable()一起使用
+# tf.Variable() 创建一个全新的变量
+# tf.get_variable() 创建共享变量
 # 参数
 #  name: tensor变量名
 #  shape：tensor变量形状
@@ -304,17 +308,18 @@ def train(total_loss, global_step):
     # Apply gradients.
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
-    # Add histograms for trainable variables.
+    # 将所有训练变量加入直方图统计量
     for var in tf.trainable_variables():
         tf.histogram_summary(var.op.name, var)
 
-    # Add histograms for gradients.
+    # 梯度变量加入直方图
     for grad, var in grads:
         if grad is not None:
             tf.histogram_summary(var.op.name + '/gradients', grad)
 
-    # Track the moving averages of all trainable variables.
+    # 滑动平均模型ExponentialMovingAverage，返回一个滑动平均的op
     variable_averages = tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY, global_step)
+    # 用滑动平均来更新所有训练变量
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
 
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):

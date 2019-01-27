@@ -15,22 +15,9 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Evaluation for CIFAR-10.
-
-Accuracy:
-cifar10_train.py achieves 83.0% accuracy after 100K steps (256 epochs
-of data) as judged by img_eval.py.
-
-Speed:
-On a single Tesla K40, cifar10_train.py processes a single batch of 128 images
-in 0.25-0.35 sec (i.e. 350 - 600 images /sec). The model reaches ~86%
-accuracy after 100K steps in 8 hours of training time.
-
-Usage:
-Please see the tutorial and website for how to download the CIFAR-10
-data set, compile the program and train the model.
-
-http://tensorflow.org/tutorials/deep_cnn/
+"""
+训练了大概一万张图片，用cifar的图片准确率80%左右
+网上自己找的图片，准确率只有50%左右,对飞机、船、汽车这些区别度比较大的识别较好，对马、狐狸、狗、猫这些背景比较复杂的识别度不太好
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -42,21 +29,28 @@ import time
 import numpy as np
 import tensorflow as tf
 import v2.img_network as img_network
+import scipy.misc
 
 FLAGS = tf.app.flags.FLAGS
 
 # 验证图片过程事件保存路径
 tf.app.flags.DEFINE_string('eval_dir', './img_eval', """Directory where to write event logs.""")
 # 为test，表示验证图片，读取./img_input下面的图片，否则读取./cifar_train下面的训练图片，开始训练
-tf.app.flags.DEFINE_string('eval_data', 'test1', """Either 'test' or 'train_eval'.""")
+tf.app.flags.DEFINE_string('eval_data', 'test', """Either 'test' or 'train_eval'.""")
 # 训练网络保存的路径
 tf.app.flags.DEFINE_string('checkpoint_dir', '../cifar10_train', """Directory where to read model checkpoints.""")
 # 验证图片频率，10s读取一次
 tf.app.flags.DEFINE_integer('eval_interval_secs', 10, """How often to run the eval.""")
 # 验证样本图片总的数量，必须大于batch_size
-tf.app.flags.DEFINE_integer('num_examples', 10, """Number of examples to run.""")
+tf.app.flags.DEFINE_integer('num_examples', 13, """Number of examples to run.""")
 # 是否只验证一次，如果为false，配合eval_interval_secs使用
 tf.app.flags.DEFINE_boolean('run_once', True, """Whether to run eval only once.""")
+
+# 读取标签文件
+def load_labels(filename):
+    with open(filename, 'rb') as f:
+        lines = [x.replace("\n", "") if x != "\n" else x for x in f.readlines()]
+        return lines
 
 
 # 验证一次方法
@@ -66,7 +60,7 @@ tf.app.flags.DEFINE_boolean('run_once', True, """Whether to run eval only once."
 #    summary_writer: Summary writer.
 #    top_k_op: Top K op.
 #    summary_op: Summary op.
-def eval_once(saver, summary_writer, top_k_op, summary_op):
+def eval_once(saver, summary_writer, top_k_op, summary_op, logits, labels, images):
     with tf.Session() as sess:
         # 还原训练参数
         ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
@@ -77,26 +71,40 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
             print('No checkpoint file found')
             return
 
-        # Start the queue runners.
+        # 启动 Coordinator 等待线程 runners.
         coord = tf.train.Coordinator()
         try:
             threads = []
             for qr in tf.get_collection(tf.GraphKeys.QUEUE_RUNNERS):
                 threads.extend(qr.create_threads(sess, coord=coord, daemon=True, start=True))
 
-            # 每批次验证的数量
+            # 迭代次数=总测试样本数/每批次样本数
             num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
-            true_count = 0  # Counts the number of correct predictions.
-            total_sample_count = num_iter * FLAGS.batch_size
+            # 计算测试命中数量
+            true_count = 0
             step = 0
+            lines = load_labels("../cifar10_data/cifar-10-batches-bin/batches.meta.txt")
             while step < num_iter and not coord.should_stop():
-                predictions = sess.run([top_k_op])
-                true_count += np.sum(predictions)
+                # 调用sess.run()会触发计算一个批次样本，再调用的时候会取下一个批次，top_k_op看不到预测中间过程
+                # 为了看到模型的预测结果，这里用logits来run
+                # predictions = sess.run([top_k_op])
+                softmaxs, results, _images = sess.run([logits, labels, images])
+                i = 0
+                for result in results:
+                    print('start %d,%s=%s(img_eval/tmp/%d.%s-%s.jpg)' % (step*FLAGS.batch_size + i,
+                                                                  lines[np.argmax(softmaxs[i])], lines[result],
+                                                                         step * FLAGS.batch_size + i, lines[result], result))
+                    #scipy.misc.toimage(_images[i]).save('img_eval/tmp/%d.%s-%s.jpg' % (step*FLAGS.batch_size + i, lines[result], result))
+                    prediction = np.equal(np.argmax(softmaxs[i]), result)
+                    true_count += np.sum(prediction)
+                    # print(softmaxs[i], result)
+                    i += 1
+                #true_count += np.sum(predictions)
                 step += 1
 
             # Compute precision @ 1.
             precision = true_count / FLAGS.num_examples
-            print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
+            print('%s: total accuracy of prediction = %.3f' % (datetime.now(), precision))
 
             summary = tf.Summary()
             summary.ParseFromString(sess.run(summary_op))
@@ -109,29 +117,27 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
         coord.join(threads, stop_grace_period_secs=10)
 
 
-# 评估图片
-# Eval CIFAR-10 for a number of steps.
+# 测试验证图片
 def evaluate():
     with tf.Graph().as_default():
-        # Get images and labels for CIFAR-10.
+        # 获取测试集还是训练集作为验证样本,'test'表示测试集
         eval_data = FLAGS.eval_data == 'test'
         images, labels = img_network.inputs(eval_data=eval_data)
 
-        # Build a Graph that computes the logits predictions from the
-        # inference model.
+        # 获取训练模型，用来预测
         logits = img_network.inference(images)
 
-        # Calculate predictions.
-        # in_top_k(predictions, targets, k, name=None)
+        # 作用是返回一个布尔向量，说明目标值是否存在于预测值之中，
+        # top_k表示logits预测的最大值所在的位置，和label做比对，k查找最大的K个值
         top_k_op = tf.nn.in_top_k(logits, labels, 1)
 
-        # Restore the moving average version of the learned variables for eval.
+        # 存储学习变量的滑动平均值
         variable_averages = tf.train.ExponentialMovingAverage(img_network.MOVING_AVERAGE_DECAY)
         variables_to_restore = variable_averages.variables_to_restore()
-        # specifies the variables that will be saved and restored
+        # 定义存储器
         saver = tf.train.Saver(variables_to_restore)
 
-        # Build the summary operation based on the TF collection of Summaries.
+        # 构建统计量
         summary_op = tf.merge_all_summaries()
 
         graph_def = tf.get_default_graph().as_graph_def()
@@ -139,13 +145,13 @@ def evaluate():
 
         while True:
             print("start evaluate the precision with examples %s" % FLAGS.num_examples)
-            eval_once(saver, summary_writer, top_k_op, summary_op)
+            eval_once(saver, summary_writer, top_k_op, summary_op, logits, labels, images)
             if FLAGS.run_once:
                 break
             time.sleep(FLAGS.eval_interval_secs)
 
 
-# 对image-test下的模型进行评估
+# 对模型进行评估
 def main(argv=None):
     evaluate()
 

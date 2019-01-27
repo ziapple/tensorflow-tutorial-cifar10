@@ -1,10 +1,7 @@
-CIFAR-10 is a common benchmark in machine learning for image recognition.
+<h2>V2目录，保存了训练后的参数
+<p>
+mac笔记本，训练了大概8000张图片，用cifar的图片准确率80%左右<br>
+网上自己找的图片，准确率只有50%左右,对飞机、船、汽车这些区别度比较大的识别较好，对马、狐狸、狗、猫这些背景比较复杂的识别度不太好<br>
+</p>
 
-http://www.cs.toronto.edu/~kriz/cifar.html
-
-Code in this directory demonstrates how to use TensorFlow to train and evaluate a convolutional neural network (CNN) on both CPU and GPU. We also demonstrate how to train a CNN over multiple GPUs.
-
-Detailed instructions on how to get started available at:
-
-http://tensorflow.org/tutorials/deep_cnn/
 
